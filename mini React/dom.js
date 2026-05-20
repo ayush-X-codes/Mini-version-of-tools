@@ -1,16 +1,27 @@
 function createElement(type, props, ...children) {
+  console.log("children is: ", children);
   let virtualDOM = {};
 
   virtualDOM["type"] = type;
-  virtualDOM["props"] = props;
+
+  if (props === null) {
+    if (children.length === 1) {
+      virtualDOM["props"] = {};
+      virtualDOM["props"]["children"] = children[0];
+    } else {
+      virtualDOM["props"]["children"] = children;
+    }
+  } else {
+    virtualDOM["props"] = props;
+
+    if (children.length === 1) {
+      virtualDOM["props"]["children"] = children[0];
+    } else {
+      virtualDOM["props"]["children"] = children;
+    }
+  }
 
   console.log("virtual DOM is: ", virtualDOM);
-
-  if (children.length === 1) {
-    virtualDOM["props"]["children"] = children[0];
-  } else {
-    virtualDOM["props"]["children"] = children;
-  }
 
   return virtualDOM;
 }
@@ -22,9 +33,14 @@ const data = createElement(
   "World",
   "continue",
 );
-const secData = createElement("p", { className: "text" }, "Hello");
 
-console.log("data is: ", data);
+let oldVirtualDOM = { ...data };
+
+console.log("copy of new virtual DOM: ", oldVirtualDOM);
+
+const secData = createElement("div", null, "Hello world");
+
+// console.log("data is: ", data);
 
 function render(content) {
   const element = content.type;
@@ -49,3 +65,14 @@ function render(content) {
 
 render(data);
 render(secData);
+
+console.log("new DOM is: ", secData);
+console.log("old DOM is: ", oldVirtualDOM);
+
+function getDiff(oldDOM, newDOM) {
+  const keysNewDOM = Object.keys(newDOM);
+  console.log("new key DOM is: ", keysNewDOM);
+}
+
+const result = getDiff(oldVirtualDOM, secData);
+console.log("result is: ", result)
