@@ -1,5 +1,4 @@
 function createElement(type, props, ...children) {
-  console.log("children is: ", children);
   let virtualDOM = {};
 
   virtualDOM["type"] = type;
@@ -21,8 +20,6 @@ function createElement(type, props, ...children) {
     }
   }
 
-  console.log("virtual DOM is: ", virtualDOM);
-
   return virtualDOM;
 }
 
@@ -36,43 +33,105 @@ const data = createElement(
 
 let oldVirtualDOM = { ...data };
 
-console.log("copy of new virtual DOM: ", oldVirtualDOM);
-
 const secData = createElement("div", null, "Hello world");
 
-// console.log("data is: ", data);
+function render(oldDOM, newDOM) {
+  if (!newDOM) {
+    const element = oldDOM.type;
+    const newEle = document.createElement(element);
 
-function render(content) {
-  const element = content.type;
-  const newEle = document.createElement(element);
+    const textContent = oldDOM.props.children;
 
-  console.log("new element is: ", newEle);
+    if (typeof textContent === "string") {
+      newEle.innerHTML = textContent;
+    } else {
+      const text = textContent.join(" ");
+      newEle.innerHTML = text;
+    }
 
-  const textContent = content.props.children;
-  console.log("text content type is: ", textContent);
+    const root = document.getElementById("root");
 
-  if (typeof textContent === "string") {
-    newEle.innerHTML = textContent;
-  } else {
-    const text = textContent.join(" ");
-    newEle.innerHTML = text;
+    root.appendChild(newEle);
   }
 
-  const root = document.getElementById("root");
+  const diff = getObjectDiff(oldDOM, newDOM);
 
-  root.appendChild(newEle);
+  if (diff.type.newValue) {
+    const element = diff.type.newValue;
+    const newEle = document.createElement(element);
+
+    if (diff.children.newValue) {
+      const textContent = diff.children.newValue;
+      if (typeof textContent === "string") {
+        newEle.innerHTML = textContent;
+      } else {
+        const text = textContent.join(" ");
+        newEle.innerHTML = text;
+      }
+    }
+
+    const root = document.getElementById("root");
+
+    root.appendChild(newEle);
+  }
+
+  console.log("result is: ", diff);
 }
 
-render(data);
-render(secData);
+render(oldVirtualDOM, secData);
 
-console.log("new DOM is: ", secData);
-console.log("old DOM is: ", oldVirtualDOM);
+function getObjectDiff(oldDOM, newDOM, path = "") {
+  const diff = {};
 
-function getDiff(oldDOM, newDOM) {
-  const keysNewDOM = Object.keys(newDOM);
-  console.log("new key DOM is: ", keysNewDOM);
+  // create an object of unique keys from both doms
+  const allKey = new Set([...Object.keys(oldDOM), ...Object.keys(newDOM)]);
+
+  // output: {type, props}
+
+  console.log("all keys are: ", allKey);
+
+  // loop through all the unique keys and store in a variables
+  allKey.forEach((key) => {
+    const val1 = oldDOM[key];
+    // output: p, {className: 'text', children: Array(3)}
+    console.log("val1 : ", val1);
+    const val2 = newDOM[key];
+    // output: div, {children: 'Hello world'}
+    console.log("val2 : ", val2);
+
+    // path for deeper nesting of objects
+    const currentPath = path ? `${path}.${key}` : key;
+
+    // output: type, props
+    console.log("current path is: ", currentPath);
+
+    // if a key not exits in oldDOM but exits in newDOM so we add it with its key
+    if (!(key in oldDOM)) {
+      diff[currentPath] = { action: "added", newValue: val2 };
+      console.log("add new value: ", diff);
+
+      // if a key exits in oldDOM but not exits in newDOM so we remove it with its key
+    } else if (!(key in newDOM)) {
+      diff[currentPath] = { action: "remove", oldValue: val1 };
+      console.log("remove value: ", diff);
+
+      // for deeper nesting using recursion object inside another object
+    } else if (
+      typeof val1 === "object" &&
+      val1 !== null &&
+      typeof val2 === "object" &&
+      val2 !== null
+    ) {
+      const nestedDiff = getObjectDiff(val1, val2, path);
+      Object.assign(diff, nestedDiff);
+      console.log("nested object value: ", diff);
+    } else if (val1 !== val2) {
+      diff[currentPath] = { action: "update", oldValue: val1, newValue: val2 };
+      console.log("not match value: ", diff);
+    }
+  });
+
+  return diff;
 }
 
-const result = getDiff(oldVirtualDOM, secData);
-console.log("result is: ", result)
+// const result = getObjectDiff(oldVirtualDOM, secData);
